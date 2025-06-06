@@ -26,10 +26,9 @@ const Home: React.FC = () => {
               Get current weather information for any city worldwide
             </p>
             <div className="text-sm text-slate-500 mb-8">
-              Built by <span className="font-semibold text-slate-700">Shantanu Ingle</span>
+              Built by <span className="font-semibold text-slate-700">[Your Name]</span>
             </div>
             
-            {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <a
                 href="https://www.linkedin.com/school/pmaccelerator/"
@@ -86,7 +85,12 @@ const Home: React.FC = () => {
           {/* Weather Display */}
           {weatherData && !isLoading && (
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/50 overflow-hidden">
-              <WeatherDisplay weatherData={weatherData} />
+              <div className="p-6">
+                <h3 className="text-2xl font-bold text-slate-900 mb-4">
+                  Weather in {weatherData.weatherData.city.name}
+                </h3>
+                <WeatherDisplay weatherData={weatherData} />
+              </div>
             </div>
           )}
 

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
@@ -8,6 +7,7 @@ interface WeatherData {
   _id: string;
   location: string;
   weatherData: any;
+  note: string;
   createdAt: string;
 }
 
@@ -16,6 +16,7 @@ const History: React.FC = () => {
   const [expandedRecord, setExpandedRecord] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<WeatherData | null>(null);
   const [editLocation, setEditLocation] = useState<string>('');
+  const [editNote, setEditNote] = useState<string>(''); // New state for note
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +42,7 @@ const History: React.FC = () => {
   const handleEditOpen = (record: WeatherData) => {
     setEditingRecord(record);
     setEditLocation(record.location);
+    setEditNote(record.note || '');
   };
 
   const handleEditSave = async () => {
@@ -48,6 +50,7 @@ const History: React.FC = () => {
     try {
       await axios.put(`http://localhost:5000/api/weather/${editingRecord._id}`, {
         location: editLocation,
+        note: editNote,
       });
       setEditingRecord(null);
       fetchRecords();
@@ -100,7 +103,7 @@ const History: React.FC = () => {
               View and manage your saved weather records
             </p>
             <div className="text-sm text-slate-500 mb-8">
-              Built by <span className="font-semibold text-slate-700">Shantanu Ingle</span>
+              Built by <span className="font-semibold text-slate-700">[Your Name]</span>
             </div>
             <div className="flex justify-center gap-4">
               <Link to="/">
@@ -113,8 +116,7 @@ const History: React.FC = () => {
               </Link>
               <button
                 onClick={fetchRecords}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
-              >
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
@@ -151,10 +153,13 @@ const History: React.FC = () => {
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div>
-                        <p className="text-sm font-semibold text-slate-700">Location: {record.location}</p>
+                        <p className="text-sm font-semibold text-slate-700">City: {record.location}</p>
                         <p className="text-sm text-slate-600">
                           Saved: {new Date(record.createdAt).toLocaleDateString()}
                         </p>
+                        {record.note && (
+                          <p className="text-sm text-slate-600 italic">Note: {record.note}</p>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -284,12 +289,22 @@ const History: React.FC = () => {
             <h3 className="text-lg font-bold text-slate-900 mb-4">Edit Record</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Location</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">City Name</label>
                 <input
                   type="text"
                   value={editLocation}
                   onChange={(e) => setEditLocation(e.target.value)}
                   className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 text-slate-900 bg-white/80 backdrop-blur-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Note</label>
+                <textarea
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 text-slate-900 bg-white/80 backdrop-blur-sm"
+                  rows={3}
+                  placeholder="Add a note about this search..."
                 />
               </div>
               <div className="flex justify-end gap-3">

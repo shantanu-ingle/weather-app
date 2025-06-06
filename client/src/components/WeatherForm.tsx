@@ -7,6 +7,7 @@ interface WeatherFormProps {
 
 const WeatherForm: React.FC<WeatherFormProps> = ({ onWeatherData }) => {
   const [location, setLocation] = useState<string>('');
+  const [note, setNote] = useState<string>(''); // New state for note
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
@@ -25,9 +26,11 @@ const WeatherForm: React.FC<WeatherFormProps> = ({ onWeatherData }) => {
         try {
           const response = await axios.post('http://localhost:5000/api/weather', {
             location: `${latitude},${longitude}`,
+            note,
           });
           onWeatherData(response.data);
-          setLocation(''); // Clear the input after successful fetch
+          setLocation('');
+          setNote('');
         } catch (error) {
           console.error('Error fetching geolocation weather:', error);
           setError('Failed to fetch weather data for your location');
@@ -56,9 +59,11 @@ const WeatherForm: React.FC<WeatherFormProps> = ({ onWeatherData }) => {
     try {
       const response = await axios.post('http://localhost:5000/api/weather', {
         location: location.trim(),
+        note,
       });
       onWeatherData(response.data);
-      setLocation(''); // Clear the input after successful fetch
+      setLocation('');
+      setNote('');
     } catch (error) {
       console.error('Error fetching weather:', error);
       setError('City not found. Please check the spelling and try again.');
@@ -69,7 +74,6 @@ const WeatherForm: React.FC<WeatherFormProps> = ({ onWeatherData }) => {
 
   return (
     <div className="space-y-4">
-      {/* Error Message */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl flex items-center gap-2">
           <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,7 +84,6 @@ const WeatherForm: React.FC<WeatherFormProps> = ({ onWeatherData }) => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* City Input */}
         <div className="relative">
           <label htmlFor="location" className="block text-sm font-semibold text-slate-700 mb-2">
             City Name
@@ -104,7 +107,21 @@ const WeatherForm: React.FC<WeatherFormProps> = ({ onWeatherData }) => {
           </div>
         </div>
 
-        {/* Action Buttons */}
+        <div>
+          <label htmlFor="note" className="block text-sm font-semibold text-slate-700 mb-2">
+            Note (Optional)
+          </label>
+          <textarea
+            id="note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Add a note about this search..."
+            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 text-slate-900 placeholder-slate-500 bg-white/80 backdrop-blur-sm"
+            rows={3}
+            disabled={isLoading}
+          />
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-3">
           <button 
             type="submit" 
@@ -150,7 +167,6 @@ const WeatherForm: React.FC<WeatherFormProps> = ({ onWeatherData }) => {
         </div>
       </form>
 
-      {/* Help Text */}
       <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50/80 backdrop-blur-sm rounded-lg p-3">
         <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
