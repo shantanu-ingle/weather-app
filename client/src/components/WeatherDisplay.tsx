@@ -7,11 +7,14 @@ import {
   Title,
   CategoryScale,
   Tooltip,
+  type ChartOptions,
+  type ScaleOptions,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import Chart from 'chart.js/auto';
 import { MapContainer, TileLayer, LayersControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { type LatLngExpression } from 'leaflet';
 
 // Register Chart.js components
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Tooltip);
@@ -67,7 +70,7 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
 
   const getCombinedChartData = (dayData: any[]) => {
     const temperatures = dayData.map((item: any) => Math.round(item.main.temp - 273.15));
-    const precipitation = dayData.map((item: any) => (item.pop * 100).toFixed(0));
+    const precipitation = dayData.map((item: any) => Number((item.pop * 100).toFixed(0)));
     return {
       labels: dayData.map((item: any) =>
         new Date(item.dt * 1000).toLocaleTimeString('en-US', {
@@ -106,7 +109,7 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
     };
   };
 
-  const combinedChartOptions = {
+  const combinedChartOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -137,8 +140,9 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
           color: '#475569',
         },
       },
-      'y-temp': {
-        position: 'left',
+      ['y-temp']: {
+        type: 'linear' as const,
+        position: 'left' as const,
         grid: {
           color: '#e2e8f0',
         },
@@ -153,9 +157,10 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
         },
         suggestedMin: Math.min(...dailyForecast.map((item: any) => Math.round(item.main.temp - 273.15))) - 5,
         suggestedMax: Math.max(...dailyForecast.map((item: any) => Math.round(item.main.temp - 273.15))) + 5,
-      },
-      'y-precip': {
-        position: 'right',
+      } as ScaleOptions<'linear'>,
+      ['y-precip']: {
+        type: 'linear' as const,
+        position: 'right' as const,
         grid: {
           drawOnChartArea: false,
         },
@@ -170,7 +175,7 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
         },
         min: 0,
         max: 100,
-      },
+      } as ScaleOptions<'linear'>,
     },
   };
 
@@ -189,6 +194,8 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
   };
 
   const healthStatus = getHealthStatus(pm25);
+
+  const center: LatLngExpression = [lat, lon];
 
   return (
     <div className="space-y-6 mt-6">
@@ -305,7 +312,7 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
                     </div>
                     <div className="flex items-center gap-3">
                       <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c-4.478 0-8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                       </svg>
                       <p className="text-sm text-slate-600">
                         <span className="font-semibold">Visibility:</span>{' '}
@@ -434,14 +441,14 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
       <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-4 shadow-lg">
         <h3 className="text-sm font-semibold text-slate-700 mb-3">Live Weather Map</h3>
         <MapContainer
-          center={[lat, lon]}
+          center={center}
           zoom={10}
           style={{ height: '300px', width: '100%' }}
           className="border rounded-lg"
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
           <LayersControl position="topright">
             <LayersControl.Overlay name="Clouds">
