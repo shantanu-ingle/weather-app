@@ -1,0 +1,24 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+  "start": "react-scripts start",
+  "build": "react-scripts build"
+},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.8",
+    "autoprefixer": "^10.4.21",
+    "axios": "^1.9.0",
+    "create-react-app": "^5.1.0",
+    "postcss": "^8.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.2",
+    "tailwindcss": "^4.1.8"
+  }
+}
