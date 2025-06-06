@@ -6,8 +6,8 @@ import ExportData from '../components/ExportData';
 interface WeatherData {
   _id: string;
   location: string;
-  dateRange: { start: string; end: string };
   weatherData: any;
+  createdAt: string;
 }
 
 const History: React.FC = () => {
@@ -15,6 +15,7 @@ const History: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLocation, setEditLocation] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRecords();
@@ -22,11 +23,14 @@ const History: React.FC = () => {
 
   const fetchRecords = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const response = await axios.get('http://localhost:5000/api/weather');
-      setWeatherRecords(response.data);
+      console.log('Fetched records:', response.data);
+      setWeatherRecords(response.data || []);
     } catch (error) {
       console.error('Error fetching records:', error);
+      setError('Failed to load weather history. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -41,6 +45,7 @@ const History: React.FC = () => {
       fetchRecords();
     } catch (error) {
       console.error('Error updating record:', error);
+      setError('Failed to update record.');
     }
   };
 
@@ -50,12 +55,29 @@ const History: React.FC = () => {
       fetchRecords();
     } catch (error) {
       console.error('Error deleting record:', error);
+      setError('Failed to delete record.');
     }
   };
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/50 p-8 text-center">
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">Error</h2>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <button
+            onClick={fetchRecords}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header Section */}
       <div className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-slate-200/50">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
@@ -77,18 +99,24 @@ const History: React.FC = () => {
                   Back to Home
                 </button>
               </Link>
+              <button
+                onClick={fetchRecords}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
-          {/* Export Section */}
           <ExportData />
 
-          {/* Loading State */}
           {isLoading && (
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/50 p-8 mt-8">
               <div className="flex items-center justify-center space-x-4">
@@ -98,7 +126,6 @@ const History: React.FC = () => {
             </div>
           )}
 
-          {/* Weather Records */}
           {!isLoading && weatherRecords.length > 0 && (
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/50 p-8 mt-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
@@ -144,8 +171,7 @@ const History: React.FC = () => {
                         <div>
                           <p className="text-sm font-semibold text-slate-700">Location: {record.location}</p>
                           <p className="text-sm text-slate-600">
-                            Date Range: {new Date(record.dateRange.start).toLocaleDateString()} -{' '}
-                            {new Date(record.dateRange.end).toLocaleDateString()}
+                            Saved: {new Date(record.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -179,7 +205,6 @@ const History: React.FC = () => {
             </div>
           )}
 
-          {/* Empty State */}
           {!isLoading && weatherRecords.length === 0 && (
             <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/50 p-16 text-center mt-8">
               <div className="text-6xl mb-6 opacity-80">📂</div>
@@ -199,7 +224,6 @@ const History: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer */}
       <div className="bg-white/60 backdrop-blur-sm border-t border-slate-200/50 mt-16">
         <div className="container mx-auto px-4 py-8 text-center">
           <p className="text-slate-600 font-medium">

@@ -21,16 +21,16 @@ const ExportData: React.FC = () => {
           filename = 'weather_data.json';
           break;
         case 'csv':
-          content = 'ID,Location,StartDate,EndDate\n' +
+          content = 'ID,Location,CreatedAt\n' +
             data.map((item: any) =>
-              `${item._id},${item.location},${item.dateRange.start},${item.dateRange.end}`
+              `${item._id},${item.location},${item.createdAt}`
             ).join('\n');
           filename = 'weather_data.csv';
           break;
         case 'markdown':
           content = '# Weather Data\n\n' +
             data.map((item: any) =>
-              `- **ID**: ${item._id}\n  **Location**: ${item.location}\n  **Date Range**: ${new Date(item.dateRange.start).toLocaleDateString()} - ${new Date(item.dateRange.end).toLocaleDateString()}\n`
+              `- **ID**: ${item._id}\n  **Location**: ${item.location}\n  **Saved**: ${new Date(item.createdAt).toLocaleDateString()}\n`
             ).join('\n');
           filename = 'weather_data.md';
           break;

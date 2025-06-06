@@ -4,7 +4,7 @@ const WeatherData = require('../models/WeatherData');
 const axios = require('axios');
 
 router.post('/', async (req, res) => {
-  const { location, startDate, endDate } = req.body;
+  const { location } = req.body;
   try {
     let url;
     if (location.includes(',')) {
@@ -16,7 +16,6 @@ router.post('/', async (req, res) => {
     const response = await axios.get(url);
     const weatherData = new WeatherData({
       location,
-      dateRange: { start: startDate, end: endDate },
       weatherData: response.data,
     });
     await weatherData.save();
@@ -26,5 +25,35 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Other routes (READ, UPDATE, DELETE) remain unchanged
+router.get('/', async (req, res) => {
+  try {
+    const data = await WeatherData.find();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch data' });
+  }
+});
+
+router.put('/:id', async (req, res) => {
+  try {
+    const updatedData = await WeatherData.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    res.json(updatedData);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update data' });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    await WeatherData.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Data deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete data' });
+  }
+});
+
 module.exports = router;
