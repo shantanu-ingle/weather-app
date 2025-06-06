@@ -7,6 +7,7 @@
   "build": "react-scripts build"
 },
   "keywords": [],
+   "$schema": "https://json.schemastore.org/package",
   "author": "",
   "license": "ISC",
   "description": "",
