@@ -20,8 +20,7 @@ interface WeatherDisplayProps {
 
 const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
-  const tempChartRef = useRef<any>(null);
-  const precipChartRef = useRef<any>(null);
+  const chartRef = useRef<any>(null);
 
   if (!weatherData?.weatherData?.list) return null;
 
@@ -54,7 +53,7 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
     const maxTemp = Math.max(...temperatures);
     const range = maxTemp - minTemp;
 
-    if (range === 0) return 'blue'; // Default color if no range
+    if (range === 0) return '#60A5FA'; // Light blue if no range
 
     // Normalize temperature to gradient stops (0 to 1)
     const addColorStop = (temp: number, color: string) => {
@@ -62,16 +61,17 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
       gradient.addColorStop(Math.min(Math.max(normalized, 0), 1), color);
     };
 
-    addColorStop(20, 'blue'); // Below 20°C: blue
-    addColorStop(35, 'orange'); // 20°C to 35°C: orange
-    addColorStop(maxTemp > 35 ? maxTemp : 35, 'red'); // Above 35°C: red
+    addColorStop(20, '#60A5FA'); // Light blue for <20°C
+    addColorStop(35, 'orange'); // Orange for 20°C to 35°C
+    addColorStop(maxTemp > 35 ? maxTemp : 35, 'red'); // Red for >35°C
 
     return gradient;
   };
 
-  // Temperature Chart Data and Options
-  const getTempChartData = (dayData: any[]) => {
+  // Combined Chart Data and Options
+  const getCombinedChartData = (dayData: any[]) => {
     const temperatures = dayData.map((item: any) => Math.round(item.main.temp - 273.15));
+    const precipitation = dayData.map((item: any) => (item.pop * 100).toFixed(0));
     return {
       labels: dayData.map((item: any) =>
         new Date(item.dt * 1000).toLocaleTimeString('en-US', {
@@ -86,20 +86,31 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
           borderColor: (context: any) => {
             const chart = context.chart;
             const { ctx, chartArea } = chart;
-            if (!chartArea) return 'blue';
+            if (!chartArea) return '#60A5FA';
             return createTempGradient(ctx, chartArea, temperatures);
           },
-          backgroundColor: 'rgba(37, 99, 235, 0.2)',
+          fill: false, // No fill for temperature
+          tension: 0.4,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          yAxisID: 'y-temp', // Left Y-axis
+        },
+        {
+          label: 'Precipitation (%)',
+          data: precipitation,
+          borderColor: '#1E40AF', // Dark blue for precipitation line
+          backgroundColor: 'rgba(30, 64, 175, 0.2)', // Translucent blue fill
           fill: true,
           tension: 0.4,
           pointRadius: 4,
           pointHoverRadius: 6,
+          yAxisID: 'y-precip', // Right Y-axis
         },
       ],
     };
   };
 
-  const tempChartOptions = {
+  const combinedChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -112,6 +123,13 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
         bodyColor: '#1e293b',
         borderColor: '#e2e8f0',
         borderWidth: 1,
+        callbacks: {
+          label: (context: any) => {
+            const label = context.dataset.label || '';
+            const value = context.parsed.y;
+            return `${label}: ${value}${label.includes('Temperature') ? '°C' : '%'}`;
+          },
+        },
       },
     },
     scales: {
@@ -123,7 +141,8 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
           color: '#475569',
         },
       },
-      y: {
+      'y-temp': {
+        position: 'left',
         grid: {
           color: '#e2e8f0',
         },
@@ -139,61 +158,10 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
         suggestedMin: Math.min(...dailyForecast.map((item: any) => Math.round(item.main.temp - 273.15))) - 5,
         suggestedMax: Math.max(...dailyForecast.map((item: any) => Math.round(item.main.temp - 273.15))) + 5,
       },
-    },
-  };
-
-  // Precipitation Chart Data and Options
-  const getPrecipChartData = (dayData: any[]) => {
-    const precipitation = dayData.map((item: any) => (item.pop * 100).toFixed(0));
-    return {
-      labels: dayData.map((item: any) =>
-        new Date(item.dt * 1000).toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      ),
-      datasets: [
-        {
-          label: 'Precipitation (%)',
-          data: precipitation,
-          borderColor: 'rgba(59, 130, 246, 1)', // Blue for precipitation
-          backgroundColor: 'rgba(59, 130, 246, 0.2)',
-          fill: true,
-          tension: 0.4,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-        },
-      ],
-    };
-  };
-
-  const precipChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        titleColor: '#1e293b',
-        bodyColor: '#1e293b',
-        borderColor: '#e2e8f0',
-        borderWidth: 1,
-      },
-    },
-    scales: {
-      x: {
+      'y-precip': {
+        position: 'right',
         grid: {
-          display: false,
-        },
-        ticks: {
-          color: '#475569',
-        },
-      },
-      y: {
-        grid: {
-          color: '#e2e8f0',
+          drawOnChartArea: false, // Avoid overlapping grid lines
         },
         ticks: {
           color: '#475569',
@@ -286,23 +254,13 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
                     </div>
                   </div>
 
-                  {/* Temperature Graph */}
+                  {/* Combined Temperature and Precipitation Graph */}
                   <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50">
                     <h4 className="text-sm font-semibold text-slate-700 mb-3">
-                      Temperature Trend
+                      Temperature and Precipitation Trends
                     </h4>
                     <div className="h-64">
-                      <Line ref={tempChartRef} data={getTempChartData(dayData)} options={tempChartOptions} />
-                    </div>
-                  </div>
-
-                  {/* Precipitation Graph */}
-                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50">
-                    <h4 className="text-sm font-semibold text-slate-700 mb-3">
-                      Precipitation Trend
-                    </h4>
-                    <div className="h-64">
-                      <Line ref={precipChartRef} data={getPrecipChartData(dayData)} options={precipChartOptions} />
+                      <Line ref={chartRef} data={getCombinedChartData(dayData)} options={combinedChartOptions} />
                     </div>
                   </div>
 
