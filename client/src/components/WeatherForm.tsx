@@ -7,7 +7,8 @@ interface WeatherFormProps {
 
 const WeatherForm: React.FC<WeatherFormProps> = ({ onWeatherData }) => {
   const [location, setLocation] = useState<string>('');
-  const [note, setNote] = useState<string>(''); // New state for note
+  const [note, setNote] = useState<string>('');
+  const [showNoteInput, setShowNoteInput] = useState(false); // Toggle for note input
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
@@ -31,6 +32,7 @@ const WeatherForm: React.FC<WeatherFormProps> = ({ onWeatherData }) => {
           onWeatherData(response.data);
           setLocation('');
           setNote('');
+          setShowNoteInput(false);
         } catch (error) {
           console.error('Error fetching geolocation weather:', error);
           setError('Failed to fetch weather data for your location');
@@ -64,6 +66,7 @@ const WeatherForm: React.FC<WeatherFormProps> = ({ onWeatherData }) => {
       onWeatherData(response.data);
       setLocation('');
       setNote('');
+      setShowNoteInput(false);
     } catch (error) {
       console.error('Error fetching weather:', error);
       setError('City not found. Please check the spelling and try again.');
@@ -104,23 +107,33 @@ const WeatherForm: React.FC<WeatherFormProps> = ({ onWeatherData }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
+            <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+              <button
+                type="button"
+                onClick={() => setShowNoteInput(!showNoteInput)}
+                className="text-slate-400 hover:text-slate-600 transition-colors duration-200"
+                title="Add a note"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15.828l-2.828.586.586-2.828L16.414 6.586z" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div>
-          <label htmlFor="note" className="block text-sm font-semibold text-slate-700 mb-2">
-            Note (Optional)
-          </label>
-          <textarea
-            id="note"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Add a note about this search..."
-            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 text-slate-900 placeholder-slate-500 bg-white/80 backdrop-blur-sm"
-            rows={3}
-            disabled={isLoading}
-          />
-        </div>
+        {showNoteInput && (
+          <div className="animate-fade-in">
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add a note about this search..."
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 text-slate-900 placeholder-slate-500 bg-white/80 backdrop-blur-sm"
+              rows={2}
+              disabled={isLoading}
+            />
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-3">
           <button 

@@ -16,7 +16,7 @@ const History: React.FC = () => {
   const [expandedRecord, setExpandedRecord] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<WeatherData | null>(null);
   const [editLocation, setEditLocation] = useState<string>('');
-  const [editNote, setEditNote] = useState<string>(''); // New state for note
+  const [editNote, setEditNote] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +30,10 @@ const History: React.FC = () => {
     try {
       const response = await axios.get('http://localhost:5000/api/weather');
       console.log('Fetched records:', response.data);
-      setWeatherRecords(response.data || []);
+      const sortedRecords = (response.data || []).sort((a: WeatherData, b: WeatherData) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setWeatherRecords(sortedRecords);
     } catch (error) {
       console.error('Error fetching records:', error);
       setError('Failed to load weather history. Please try again.');
@@ -116,7 +119,8 @@ const History: React.FC = () => {
               </Link>
               <button
                 onClick={fetchRecords}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2">
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>

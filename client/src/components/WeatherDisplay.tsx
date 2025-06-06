@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   LineController,
   LineElement,
@@ -21,6 +20,8 @@ interface WeatherDisplayProps {
 
 const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const tempChartRef = useRef<any>(null);
+  const precipChartRef = useRef<any>(null);
 
   if (!weatherData?.weatherData?.list) return null;
 
@@ -38,7 +39,7 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
     setExpandedDay(expandedDay === dt ? null : dt);
   };
 
-  // Get temperature data for the selected day
+  // Get data for the selected day
   const getDayData = (dt: number) => {
     const selectedDate = new Date(dt * 1000).toDateString();
     return weatherData.weatherData.list.filter((item: any) =>
@@ -46,29 +47,59 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
     );
   };
 
-  // Chart.js data and options
-  const getChartData = (dayData: any[]) => ({
-    labels: dayData.map((item: any) =>
-      new Date(item.dt * 1000).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    ),
-    datasets: [
-      {
-        label: 'Temperature (°C)',
-        data: dayData.map((item: any) => Math.round(item.main.temp - 273.15)),
-        borderColor: 'rgba(37, 99, 235, 1)',
-        backgroundColor: 'rgba(37, 99, 235, 0.2)',
-        fill: true,
-        tension: 0.4, // Smooth curve
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      },
-    ],
-  });
+  // Create gradient for the temperature line based on temperature ranges
+  const createTempGradient = (ctx: CanvasRenderingContext2D, chartArea: any, temperatures: number[]) => {
+    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+    const minTemp = Math.min(...temperatures);
+    const maxTemp = Math.max(...temperatures);
+    const range = maxTemp - minTemp;
 
-  const chartOptions = {
+    if (range === 0) return 'blue'; // Default color if no range
+
+    // Normalize temperature to gradient stops (0 to 1)
+    const addColorStop = (temp: number, color: string) => {
+      const normalized = (temp - minTemp) / range;
+      gradient.addColorStop(Math.min(Math.max(normalized, 0), 1), color);
+    };
+
+    addColorStop(20, 'blue'); // Below 20°C: blue
+    addColorStop(35, 'orange'); // 20°C to 35°C: orange
+    addColorStop(maxTemp > 35 ? maxTemp : 35, 'red'); // Above 35°C: red
+
+    return gradient;
+  };
+
+  // Temperature Chart Data and Options
+  const getTempChartData = (dayData: any[]) => {
+    const temperatures = dayData.map((item: any) => Math.round(item.main.temp - 273.15));
+    return {
+      labels: dayData.map((item: any) =>
+        new Date(item.dt * 1000).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      ),
+      datasets: [
+        {
+          label: 'Temperature (°C)',
+          data: temperatures,
+          borderColor: (context: any) => {
+            const chart = context.chart;
+            const { ctx, chartArea } = chart;
+            if (!chartArea) return 'blue';
+            return createTempGradient(ctx, chartArea, temperatures);
+          },
+          backgroundColor: 'rgba(37, 99, 235, 0.2)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+      ],
+    };
+  };
+
+  const tempChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -105,9 +136,96 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
           text: 'Temperature (°C)',
           color: '#1e293b',
         },
+        suggestedMin: Math.min(...dailyForecast.map((item: any) => Math.round(item.main.temp - 273.15))) - 5,
+        suggestedMax: Math.max(...dailyForecast.map((item: any) => Math.round(item.main.temp - 273.15))) + 5,
       },
     },
   };
+
+  // Precipitation Chart Data and Options
+  const getPrecipChartData = (dayData: any[]) => {
+    const precipitation = dayData.map((item: any) => (item.pop * 100).toFixed(0));
+    return {
+      labels: dayData.map((item: any) =>
+        new Date(item.dt * 1000).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      ),
+      datasets: [
+        {
+          label: 'Precipitation (%)',
+          data: precipitation,
+          borderColor: 'rgba(59, 130, 246, 1)', // Blue for precipitation
+          backgroundColor: 'rgba(59, 130, 246, 0.2)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+      ],
+    };
+  };
+
+  const precipChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        titleColor: '#1e293b',
+        bodyColor: '#1e293b',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: '#475569',
+        },
+      },
+      y: {
+        grid: {
+          color: '#e2e8f0',
+        },
+        ticks: {
+          color: '#475569',
+          callback: (value: number) => `${value}%`,
+        },
+        title: {
+          display: true,
+          text: 'Precipitation (%)',
+          color: '#1e293b',
+        },
+        min: 0,
+        max: 100,
+      },
+    },
+  };
+
+  // Air Quality Data
+  const airQuality = weatherData.airQuality?.list?.[0]?.components || {};
+  const pm25 = airQuality.pm2_5 || 0;
+  const pm10 = airQuality.pm10 || 0;
+  const co = airQuality.co || 0;
+  const so2 = airQuality.so2 || 0;
+
+  const getHealthStatus = (pm25: number) => {
+    if (pm25 <= 12) return { status: 'Healthy', color: 'bg-green-500' };
+    if (pm25 <= 35.4) return { status: 'Moderate', color: 'bg-yellow-500' };
+    if (pm25 <= 55.4) return { status: 'Unhealthy for Sensitive Groups', color: 'bg-orange-500' };
+    if (pm25 <= 150.4) return { status: 'Unhealthy', color: 'bg-red-500' };
+    return { status: 'Very Unhealthy', color: 'bg-purple-500' };
+  };
+
+  const healthStatus = getHealthStatus(pm25);
 
   return (
     <div className="space-y-6 mt-6">
@@ -174,7 +292,17 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
                       Temperature Trend
                     </h4>
                     <div className="h-64">
-                      <Line data={getChartData(dayData)} options={chartOptions} />
+                      <Line ref={tempChartRef} data={getTempChartData(dayData)} options={tempChartOptions} />
+                    </div>
+                  </div>
+
+                  {/* Precipitation Graph */}
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                      Precipitation Trend
+                    </h4>
+                    <div className="h-64">
+                      <Line ref={precipChartRef} data={getPrecipChartData(dayData)} options={precipChartOptions} />
                     </div>
                   </div>
 
@@ -273,6 +401,67 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
                       </p>
                     </div>
                   </div>
+
+                  {/* Air Quality */}
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                      Air Quality
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-slate-600 flex items-center gap-2">
+                          <span className="font-semibold">PM2.5:</span> {pm25} µg/m³
+                          <span className={`text-xs px-2 py-1 rounded-full ${healthStatus.color} text-white`}>
+                            {healthStatus.status}
+                          </span>
+                        </p>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                          <div
+                            className="bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 h-2 rounded-full"
+                            style={{ width: `${Math.min((pm25 / 150) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">Range: 0 - 150 µg/m³</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-600">
+                          <span className="font-semibold">PM10:</span> {pm10} µg/m³
+                        </p>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                          <div
+                            className="bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 h-2 rounded-full"
+                            style={{ width: `${Math.min((pm10 / 250) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">Range: 0 - 250 µg/m³</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-600">
+                          <span className="font-semibold">CO:</span> {co} µg/m³
+                        </p>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                          <div
+                            className="bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 h-2 rounded-full"
+                            style={{ width: `${Math.min((co / 10000) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">Range: 0 - 10000 µg/m³</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-600">
+                          <span className="font-semibold">SO2:</span> {so2} µg/m³
+                        </p>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                          <div
+                            className="bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 h-2 rounded-full"
+                            style={{ width: `${Math.min((so2 / 500) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">Range: 0 - 500 µg/m³</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <button
                     onClick={() => setExpandedDay(null)}
                     className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white px-6 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 mx-auto"
