@@ -26,7 +26,7 @@ const Home: React.FC = () => {
               Get current weather information for any city worldwide
             </p>
             <div className="text-sm text-slate-500 mb-8">
-              Built by <span className="font-semibold text-slate-700">[Your Name]</span>
+              Built by <span className="font-semibold text-slate-700">Shantanu Ingle</span>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">

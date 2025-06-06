@@ -106,7 +106,7 @@ const History: React.FC = () => {
               View and manage your saved weather records
             </p>
             <div className="text-sm text-slate-500 mb-8">
-              Built by <span className="font-semibold text-slate-700">[Your Name]</span>
+              Built by <span className="font-semibold text-slate-700">Shantanu Ingle</span>
             </div>
             <div className="flex justify-center gap-4">
               <Link to="/">

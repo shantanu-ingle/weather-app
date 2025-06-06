@@ -10,6 +10,8 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import Chart from 'chart.js/auto';
+import { MapContainer, TileLayer, LayersControl } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
 // Register Chart.js components
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Tooltip);
@@ -28,17 +30,14 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
     .filter((item: any) => item.dt_txt.includes('12:00:00'))
     .slice(0, 5);
 
-  const location = weatherData.weatherData.city?.coord
-    ? `${weatherData.weatherData.city.coord.lat},${weatherData.weatherData.city.coord.lon}`
-    : weatherData.location;
-
   const cityData = weatherData.weatherData.city;
+  const lat = cityData?.coord?.lat || 0;
+  const lon = cityData?.coord?.lon || 0;
 
   const toggleExpand = (dt: string) => {
     setExpandedDay(expandedDay === dt ? null : dt);
   };
 
-  // Get data for the selected day
   const getDayData = (dt: number) => {
     const selectedDate = new Date(dt * 1000).toDateString();
     return weatherData.weatherData.list.filter((item: any) =>
@@ -46,29 +45,26 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
     );
   };
 
-  // Create gradient for the temperature line based on temperature ranges
   const createTempGradient = (ctx: CanvasRenderingContext2D, chartArea: any, temperatures: number[]) => {
     const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
     const minTemp = Math.min(...temperatures);
     const maxTemp = Math.max(...temperatures);
     const range = maxTemp - minTemp;
 
-    if (range === 0) return '#60A5FA'; // Light blue if no range
+    if (range === 0) return '#60A5FA';
 
-    // Normalize temperature to gradient stops (0 to 1)
     const addColorStop = (temp: number, color: string) => {
       const normalized = (temp - minTemp) / range;
       gradient.addColorStop(Math.min(Math.max(normalized, 0), 1), color);
     };
 
-    addColorStop(20, '#60A5FA'); // Light blue for <20°C
-    addColorStop(35, 'orange'); // Orange for 20°C to 35°C
-    addColorStop(maxTemp > 35 ? maxTemp : 35, 'red'); // Red for >35°C
+    addColorStop(20, '#60A5FA');
+    addColorStop(35, 'orange');
+    addColorStop(maxTemp > 35 ? maxTemp : 35, 'red');
 
     return gradient;
   };
 
-  // Combined Chart Data and Options
   const getCombinedChartData = (dayData: any[]) => {
     const temperatures = dayData.map((item: any) => Math.round(item.main.temp - 273.15));
     const precipitation = dayData.map((item: any) => (item.pop * 100).toFixed(0));
@@ -89,22 +85,22 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
             if (!chartArea) return '#60A5FA';
             return createTempGradient(ctx, chartArea, temperatures);
           },
-          fill: false, // No fill for temperature
+          fill: false,
           tension: 0.4,
           pointRadius: 4,
           pointHoverRadius: 6,
-          yAxisID: 'y-temp', // Left Y-axis
+          yAxisID: 'y-temp',
         },
         {
           label: 'Precipitation (%)',
           data: precipitation,
-          borderColor: '#1E40AF', // Dark blue for precipitation line
-          backgroundColor: 'rgba(30, 64, 175, 0.2)', // Translucent blue fill
+          borderColor: '#1E40AF',
+          backgroundColor: 'rgba(30, 64, 175, 0.2)',
           fill: true,
           tension: 0.4,
           pointRadius: 4,
           pointHoverRadius: 6,
-          yAxisID: 'y-precip', // Right Y-axis
+          yAxisID: 'y-precip',
         },
       ],
     };
@@ -161,7 +157,7 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
       'y-precip': {
         position: 'right',
         grid: {
-          drawOnChartArea: false, // Avoid overlapping grid lines
+          drawOnChartArea: false,
         },
         ticks: {
           color: '#475569',
@@ -178,7 +174,6 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
     },
   };
 
-  // Air Quality Data
   const airQuality = weatherData.airQuality?.list?.[0]?.components || {};
   const pm25 = airQuality.pm2_5 || 0;
   const pm10 = airQuality.pm10 || 0;
@@ -435,21 +430,44 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weatherData }) => {
         </div>
       )}
 
-      {/* Google Maps */}
-      {location && (
-        <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-4 shadow-lg">
-          <h3 className="text-sm font-semibold text-slate-700 mb-3">Location Map</h3>
-          <iframe
-            width="100%"
-            height="300"
-            src={`https://www.google.com/maps/embed/v1/place?key=${
-              import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-            }&q=${location}`}
-            allowFullScreen
-            className="border rounded-lg"
-          ></iframe>
-        </div>
-      )}
+      {/* Live Weather Map with Layers */}
+      <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-4 shadow-lg">
+        <h3 className="text-sm font-semibold text-slate-700 mb-3">Live Weather Map</h3>
+        <MapContainer
+          center={[lat, lon]}
+          zoom={10}
+          style={{ height: '300px', width: '100%' }}
+          className="border rounded-lg"
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
+          <LayersControl position="topright">
+            <LayersControl.Overlay name="Clouds">
+              <TileLayer
+                url={`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${
+                  import.meta.env.VITE_OPENWEATHER_API_KEY
+                }`}
+              />
+            </LayersControl.Overlay>
+            <LayersControl.Overlay name="Wind">
+              <TileLayer
+                url={`https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${
+                  import.meta.env.VITE_OPENWEATHER_API_KEY
+                }`}
+              />
+            </LayersControl.Overlay>
+            <LayersControl.Overlay name="Temperature">
+              <TileLayer
+                url={`https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${
+                  import.meta.env.VITE_OPENWEATHER_API_KEY
+                }`}
+              />
+            </LayersControl.Overlay>
+          </LayersControl>
+        </MapContainer>
+      </div>
     </div>
   );
 };
